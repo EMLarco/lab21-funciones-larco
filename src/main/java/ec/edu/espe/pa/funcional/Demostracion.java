@@ -1,6 +1,8 @@
 package ec.edu.espe.pa.funcional;
 
+import ec.edu.espe.pa.funcional.contrato.ReglaIncidencia;
 import ec.edu.espe.pa.funcional.modelo.Incidencia;
+import ec.edu.espe.pa.funcional.reglas.PrioridadAlta;
 import java.util.function.Predicate;
 import java.util.function.Function;
 import java.util.function.Consumer;
@@ -57,6 +59,71 @@ public class Demostracion {
         //              // from a lambda expression must be final or effectively final"
         System.out.println("superaUmbral.test(ejemplo): " + superaUmbral.test(ejemplo));
 
-        // Las Fases 3 y 5 se agregarán a continuación en este mismo main.
+        System.out.println("=== Fase 3: contrato ReglaIncidencia ===");
+
+        // 1) Clase con nombre
+        ReglaIncidencia prioridadAltaClase = new PrioridadAlta();
+
+        // 2) Clase anónima
+        ReglaIncidencia abiertaAnonima = new ReglaIncidencia() {
+            @Override
+            public boolean evaluar(Incidencia incidencia) {
+                return "ABIERTA".equals(incidencia.estado());
+            }
+        };
+
+        // 3) Expresión lambda
+        ReglaIncidencia abiertaLambda = incidencia -> "ABIERTA".equals(incidencia.estado());
+
+        ReglaIncidencia prioridadAltaAnonima = new ReglaIncidencia() {
+            @Override
+            public boolean evaluar(Incidencia incidencia) {
+                return incidencia.prioridad() >= 4;
+            }
+        };
+
+        ReglaIncidencia prioridadAltaLambda = incidencia -> incidencia.prioridad() >= 4;
+
+        Incidencia[] incidencias = {
+            new Incidencia("INC-101", "Servidor caído", "ABIERTA", 5),
+            new Incidencia("INC-102", "Lentitud", "ABIERTA", 3),
+            new Incidencia("INC-103", "Respaldo", "CERRADA", 4)
+        };
+
+        System.out.println("Regla 'prioridad alta': clase con nombre, clase anónima y lambda");
+        System.out.printf("%-9s %-18s %-18s %-18s %-12s%n",
+                "ID", "clase", "anónima", "lambda", "coinciden");
+        for (Incidencia incidencia : incidencias) {
+            boolean porClase = prioridadAltaClase.evaluar(incidencia);
+            boolean porAnonima = prioridadAltaAnonima.evaluar(incidencia);
+            boolean porLambda = prioridadAltaLambda.evaluar(incidencia);
+            System.out.printf("%-9s %-18s %-18s %-18s %-12s%n",
+                    incidencia.id(), porClase, porAnonima, porLambda,
+                    porClase == porAnonima && porAnonima == porLambda);
+        }
+
+        System.out.println("Regla 'abierta': clase anónima vs lambda");
+        System.out.printf("%-9s %-18s %-18s %-12s%n", "ID", "anónima", "lambda", "coinciden");
+        for (Incidencia incidencia : incidencias) {
+            boolean porAnonima = abiertaAnonima.evaluar(incidencia);
+            boolean porLambda = abiertaLambda.evaluar(incidencia);
+            System.out.printf("%-9s %-18s %-18s %-12s%n",
+                    incidencia.id(), porAnonima, porLambda, porAnonima == porLambda);
+        }
+
+        // Combinación con el método default y adaptación a Predicate mediante referencia a método
+        ReglaIncidencia requiereAtencion = abiertaLambda.y(new PrioridadAlta());
+        Predicate<Incidencia> comoPredicado = requiereAtencion::evaluar;
+
+        System.out.println("Combinación: abiertaLambda.y(new PrioridadAlta()) y referencia a método");
+        System.out.printf("%-9s %-22s %-22s%n", "ID", "Regla.evaluar", "Predicate.test");
+        for (Incidencia incidencia : incidencias) {
+            System.out.printf("%-9s %-22s %-22s%n",
+                    incidencia.id(),
+                    requiereAtencion.evaluar(incidencia),
+                    comoPredicado.test(incidencia));
+        }
+
+        // La Fase 5 se agregará a continuación en este mismo main.
     }
 }
