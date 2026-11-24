@@ -3,6 +3,7 @@ package ec.edu.espe.pa.funcional;
 import ec.edu.espe.pa.funcional.contrato.ReglaIncidencia;
 import ec.edu.espe.pa.funcional.modelo.Incidencia;
 import ec.edu.espe.pa.funcional.reglas.PrioridadAlta;
+import ec.edu.espe.pa.funcional.reglas.ReglasIncidencia;
 import java.util.function.Predicate;
 import java.util.function.Function;
 import java.util.function.Consumer;
@@ -123,6 +124,26 @@ public class Demostracion {
                     requiereAtencion.evaluar(incidencia),
                     comoPredicado.test(incidencia));
         }
+
+        System.out.println();
+        System.out.println("=== Fase 4: funciones del caso práctico ===");
+        System.out.println("UMBRAL_PRIORIDAD_ALTA = " + ReglasIncidencia.UMBRAL_PRIORIDAD_ALTA);
+        System.out.printf("%-10s %-13s %-15s %-18s %-9s%n",
+                "prioridad", "ESTA_ABIERTA", "PRIORIDAD_ALTA", "REQUIERE_ATENCION", "CATEGORIA");
+        for (int prioridad = 1; prioridad <= 5; prioridad++) {
+            Incidencia muestra = new Incidencia("INC-20" + prioridad, "Muestra", "ABIERTA", prioridad);
+            System.out.printf("%-10d %-13s %-15s %-18s %-9s%n", prioridad,
+                    ReglasIncidencia.ESTA_ABIERTA.test(muestra),
+                    ReglasIncidencia.PRIORIDAD_ALTA.test(muestra),
+                    ReglasIncidencia.REQUIERE_ATENCION.test(muestra),
+                    ReglasIncidencia.CATEGORIA.apply(muestra));
+        }
+        System.out.println("RESUMEN.apply(INC-101): " + ReglasIncidencia.RESUMEN.apply(incidencias[0]));
+        ReglasIncidencia.NOTIFICAR.accept(incidencias[0]);
+        Supplier<Incidencia> generador = ReglasIncidencia.generadorSintetico();
+        System.out.println("generadorSintetico().get(): " + generador.get());
+        System.out.println("generadorSintetico().get(): " + generador.get());
+        System.out.println("generadorSintetico().get(): " + generador.get());
 
         // La Fase 5 se agregará a continuación en este mismo main.
     }
