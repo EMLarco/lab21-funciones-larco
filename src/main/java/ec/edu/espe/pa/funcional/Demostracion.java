@@ -1,5 +1,6 @@
 package ec.edu.espe.pa.funcional;
 
+import ec.edu.espe.pa.funcional.contrato.FabricaIncidencia;
 import ec.edu.espe.pa.funcional.contrato.ReglaIncidencia;
 import ec.edu.espe.pa.funcional.modelo.Incidencia;
 import ec.edu.espe.pa.funcional.reglas.PrioridadAlta;
@@ -8,6 +9,10 @@ import java.util.function.Predicate;
 import java.util.function.Function;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.List;
+
+import static ec.edu.espe.pa.funcional.reglas.ReglasIncidencia.*;
 
 public class Demostracion {
 
@@ -145,6 +150,67 @@ public class Demostracion {
         System.out.println("generadorSintetico().get(): " + generador.get());
         System.out.println("generadorSintetico().get(): " + generador.get());
 
-        // La Fase 5 se agregará a continuación en este mismo main.
+        System.out.println();
+        System.out.println("=== Fase 5: composición y referencias a métodos ===");
+        Incidencia muestraCritica = incidencias[0];   // INC-101, ABIERTA, 5
+        Incidencia muestraMedia = incidencias[1];     // INC-102, ABIERTA, 3
+        Incidencia muestraCerrada = incidencias[2];   // INC-103, CERRADA, 4
+
+        // Predicate: and, or, negate
+        Predicate<Incidencia> noAbierta     = ESTA_ABIERTA.negate();
+        Predicate<Incidencia> pendienteBaja = ESTA_ABIERTA.and(PRIORIDAD_ALTA.negate());
+        Predicate<Incidencia> revisarHoy    = REQUIERE_ATENCION.or(i -> i.prioridad() == 5);
+
+        System.out.printf("%-9s %-11s %-14s %-11s%n", "ID", "noAbierta", "pendienteBaja", "revisarHoy");
+        for (Incidencia incidencia : incidencias) {
+            System.out.printf("%-9s %-11s %-14s %-11s%n", incidencia.id(),
+                    noAbierta.test(incidencia), pendienteBaja.test(incidencia), revisarHoy.test(incidencia));
+        }
+
+        // Function: andThen (primero this, luego la otra) y compose (primero la otra, luego this)
+        Function<String, String> aMayusculas = String::toUpperCase;
+        Function<Incidencia, String> resumenMayusculas = RESUMEN.andThen(aMayusculas);
+        Function<Incidencia, String> mismoResultado    = aMayusculas.compose(RESUMEN);
+        Function<Incidencia, String> etiqueta          = CATEGORIA.andThen(c -> "[" + c + "]");
+
+        System.out.println("RESUMEN.andThen(aMayusculas)  : " + resumenMayusculas.apply(muestraCritica));
+        System.out.println("aMayusculas.compose(RESUMEN)  : " + mismoResultado.apply(muestraCritica));
+        System.out.println("¿Mismo texto?                 : "
+                + resumenMayusculas.apply(muestraCritica).equals(mismoResultado.apply(muestraCritica)));
+        System.out.println("CATEGORIA.andThen(etiqueta)   : " + etiqueta.apply(muestraMedia));
+
+        // Ejemplo en el que el orden de composición SÍ cambia el resultado
+        Function<String, String> agregarPrefijo = texto -> "inc: " + texto;
+        System.out.println("aMayusculas.andThen(prefijo)  : "
+                + aMayusculas.andThen(agregarPrefijo).apply(RESUMEN.apply(muestraCritica)));
+        System.out.println("aMayusculas.compose(prefijo)  : "
+                + aMayusculas.compose(agregarPrefijo).apply(RESUMEN.apply(muestraCritica)));
+
+        // Consumer: andThen encadena dos acciones sobre el mismo elemento
+        List<String> bitacora = new ArrayList<>();
+        Consumer<Incidencia> registrar = i -> bitacora.add(i.id());
+        Consumer<Incidencia> notificarYRegistrar = NOTIFICAR.andThen(registrar);
+        notificarYRegistrar.accept(muestraCritica);
+        notificarYRegistrar.accept(muestraCerrada);
+        System.out.println("Bitácora tras NOTIFICAR.andThen(registrar): " + bitacora);
+
+        // Referencias a métodos, en sus cuatro variantes
+        System.out.println("--- Referencias a métodos ---");
+        // Método estático:                     Clase::metodoEstatico
+        Predicate<Incidencia> esCritica = ReglasIncidencia::esCritica;
+        System.out.println("ReglasIncidencia::esCritica (INC-101): " + esCritica.test(muestraCritica));
+        // Método de un objeto particular:      objeto::metodo
+        List<Incidencia> listaIncidencias = List.of(incidencias);
+        System.out.println("System.out::println sobre la lista:");
+        listaIncidencias.forEach(System.out::println);
+        // Método de una instancia arbitraria: Tipo::metodoDeInstancia
+        Function<Incidencia, String> titulo = Incidencia::titulo;
+        System.out.println("Incidencia::titulo (INC-102): " + titulo.apply(muestraMedia));
+        // Constructor:                         Clase::new
+        Supplier<List<Incidencia>> nuevaLista = ArrayList::new;
+        FabricaIncidencia fabrica = Incidencia::new;
+        List<Incidencia> creadas = nuevaLista.get();
+        creadas.add(fabrica.crear("INC-300", "Creada con Incidencia::new", "ABIERTA", 4));
+        System.out.println("ArrayList::new + Incidencia::new: " + creadas);
     }
 }
